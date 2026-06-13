@@ -6,6 +6,37 @@ if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'YOUR_GEMINI_AP
   genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 }
 
+const FALLBACK_MODELS = [
+  'gemini-1.5-flash',
+  'gemini-2.0-flash',
+  'gemini-2.5-flash',
+  'gemini-pro-latest',
+  'gemini-flash-latest',
+  'gemini-1.5-pro'
+];
+
+/**
+ * Invokes Gemini content generation trying multiple model names if rate limits or errors are hit.
+ */
+const generateContentWithFallback = async (prompt, config = {}) => {
+  let lastError = null;
+  for (const modelName of FALLBACK_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: config
+      });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      lastError = error;
+      console.warn(`Model ${modelName} failed or was rate limited: ${error.message}. Retrying with next model...`);
+    }
+  }
+  throw new Error(`All Gemini models failed or were rate limited. Last error: ${lastError?.message}`);
+};
+
 /**
  * Evaluates the match between a student's resume/profile and a job description.
  * Uses Google Gemini API to analyze strengths/gaps and returns structured recommendations.
@@ -21,11 +52,6 @@ const evaluateResumeMatch = async (studentProfileText, jobDescription) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      generationConfig: { responseMimeType: 'application/json' }
-    });
-
     const prompt = `
       You are an expert technical recruiter. Analyze the match between a student's resume profile and a job description.
       
@@ -47,9 +73,7 @@ const evaluateResumeMatch = async (studentProfileText, jobDescription) => {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = await generateContentWithFallback(prompt, { responseMimeType: 'application/json' });
     
     // Parse the structured JSON response
     const evaluation = JSON.parse(text.trim());
@@ -145,11 +169,6 @@ const generateMockQuestions = async (studentProfileText, jobDescription) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      generationConfig: { responseMimeType: 'application/json' }
-    });
-
     const prompt = `
       You are an expert technical interviewer. Generate exactly 3 technical or behavioral interview questions for a student based on their resume profile and the job description.
       
@@ -173,9 +192,7 @@ const generateMockQuestions = async (studentProfileText, jobDescription) => {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = await generateContentWithFallback(prompt, { responseMimeType: 'application/json' });
     const parsed = JSON.parse(text.trim());
     return Array.isArray(parsed.questions) ? parsed.questions : [
       "Tell us about your experience with modern frontend/backend technologies.",
@@ -205,11 +222,6 @@ const evaluateMockAnswers = async (questions, answers, jobDescription) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      generationConfig: { responseMimeType: 'application/json' }
-    });
-
     let QA_Pairs = '';
     questions.forEach((q, i) => {
       QA_Pairs += `Question ${i+1}: ${q}\nAnswer ${i+1}: ${answers[i] || 'No answer provided.'}\n\n`;
@@ -236,9 +248,7 @@ const evaluateMockAnswers = async (questions, answers, jobDescription) => {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = await generateContentWithFallback(prompt, { responseMimeType: 'application/json' });
     const evaluation = JSON.parse(text.trim());
     return {
       score: Math.min(100, Math.max(0, parseInt(evaluation.score) || 60)),
@@ -267,11 +277,6 @@ const optimizeProfile = async (studentProfileText, jobDescription) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      generationConfig: { responseMimeType: 'application/json' }
-    });
-
     const prompt = `
       You are an elite career coach. Analyze the student's resume profile and a target job description. Recommend specific optimizations to help them pass resume-screening filters.
       
@@ -298,9 +303,7 @@ const optimizeProfile = async (studentProfileText, jobDescription) => {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = await generateContentWithFallback(prompt, { responseMimeType: 'application/json' });
     const suggestions = JSON.parse(text.trim());
     return {
       strengths: suggestions.strengths || 'Profile shows a solid base of general software development skills.',
