@@ -29,7 +29,9 @@ socketService.init(server);
 // 3. Security & Global Request Parsing Middlewares
 app.use(helmet()); 
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
+  origin: (origin, callback) => {
+    callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));

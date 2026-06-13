@@ -6,7 +6,9 @@ let io = null;
 const init = (server) => {
   io = socketIO(server, {
     cors: {
-      origin: process.env.CLIENT_URL || '*',
+      origin: (origin, callback) => {
+        callback(null, true);
+      },
       methods: ['GET', 'POST'],
       credentials: true
     }
