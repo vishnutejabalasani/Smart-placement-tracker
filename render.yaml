@@ -2,7 +2,7 @@ services:
   - type: web
     name: smart-placement-tracker-backend
     env: node
-    rootDir: server
+    rootDir: backend
     buildCommand: npm install
     startCommand: node server.js
     envVars:

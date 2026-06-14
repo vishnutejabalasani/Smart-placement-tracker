@@ -1,83 +1,105 @@
-# TrustWeave Smart Placement Tracker (Co-Pilot and Security Monitor)
+# Smart Placement Tracker — AI-Powered Campus Recruitment Platform
 
-The Smart Placement Tracker is a secure, real-time MERN-stack placement management system designed to streamline recruitment drives for students and administrators. Powered by Gemini AI and real-time WebSockets, it provides automated resume matching, interactive mock interview simulations, and an active security command center to detect anomalies and eligibility bypass attempts.
-
----
-
-## Key Features
-
-1. **AI Resume Co-Pilot:** Evaluates student resumes against job openings, proposing keyword optimizations and strength analysis using Gemini AI.
-2. **AI Mock Coach Simulator:** Guides students through automated job-specific mock interview simulations, providing instant, evaluated feedback and scoring.
-3. **Interactive Kanban Board:** Real-time application tracking with interactive drag-and-drop state updates.
-4. **WebSocket Notification Feed:** Instant broadcasts for newly posted placement drives and real-time application status updates.
-5. **Security Command Center:** Tracks network-level rate limit spikes and flags student eligibility bypasses (e.g. attempting to apply below the CGPA cut-off).
-6. **Robust Access Control:** Role-Based Access Control (RBAC) auth middleware with active account suspension/ban capabilities.
+> A secure, real-time MERN-stack placement management system designed to streamline campus recruitment for students and administrators. Powered by **Gemini AI** and **WebSockets**, it delivers automated resume matching, interactive mock interview simulations, and an active security command center.
 
 ---
 
-## Core System Workflows
+## ✨ Key Features
 
-### 1. Student Onboarding and Profile Maintenance
-- Students register using their academic email address, password, branch, CGPA, and contact information.
-- Once authenticated, students can update their skills list and paste their plain-text resume content directly into the profile editor.
-- Students can invoke the AI Resume Optimizer. This triggers a request that compares their resume against a target job posting, providing feedback and optimizing the draft using Gemini AI.
-
-### 2. Job Creation and Real-Time Broadcast
-- Admin users can create job openings by specifying details such as company name, position role, compensation package (LPA), deadline, eligible branch departments, and a minimum CGPA cut-off.
-- Saving a job posts it to the database and broadcasts a notification payload to all connected WebSocket clients. Active students immediately receive a notification banner on their dashboard.
-
-### 3. Application Submission and Security Validation
-- When a student applies to a job opening, the frontend verifies their CGPA eligibility. If the student meets the cut-off, the application status is set to "APPLIED" and tracked on the Kanban board.
-- If a student tries to bypass frontend checks (e.g., via direct API requests), the backend security middleware interceptor queries the database. It will reject the submission, log a CGPA bypass anomaly in the database, and issue a real-time warning alert to the Admin dashboard.
-
-### 4. Interactive AI Interview Simulation
-- For applied positions, students can launch the AI Mock Coach.
-- The simulator pulls relevant interview questions generated based on the specific job description and the student's resume.
-- The student submits their responses, which are sent to the Gemini AI evaluation engine. The engine computes a score, generates feedback, and writes the practice session history to the database.
-
-### 5. Admin Security Enforcement and Ban System
-- The Security Command Center displays all logged rate limits and CGPA bypass anomalies in real-time.
-- Admins can immediately suspend/ban violating student accounts from the dashboard.
-- Once banned, the user's active socket is disconnected, their stored JWT token is invalidated by the request middleware, and any subsequent login attempts are rejected with a 403 status code.
+| Feature | Description |
+|---|---|
+| **AI Resume Co-Pilot** | Evaluates student resumes against job openings, suggesting keyword optimizations and strengths using Gemini AI. |
+| **AI Mock Coach Simulator** | Guides students through job-specific MCQ-based mock interviews with instant AI-evaluated feedback and scoring. |
+| **Interactive Kanban Board** | Real-time application tracking with drag-and-drop state management. |
+| **WebSocket Notifications** | Instant broadcasts for new placement drives and application status updates via Socket.io. |
+| **Security Command Center** | Tracks rate-limit anomalies and flags student eligibility bypass attempts in real time. |
+| **Role-Based Access Control** | RBAC auth middleware with active account suspension and ban capabilities. |
 
 ---
 
-## Project Directory Layout
+## 🏗️ Architecture Overview
 
-The application is structured as a monorepo containing:
-- **`/client`:** React SPA bootstrapped with Vite, using TailwindCSS and Socket.io-client.
-- **`/server`:** Node.js Express backend using MongoDB/Mongoose, Socket.io, and the Google Gemini API.
+The application follows a **monorepo** structure with cleanly separated frontend and backend codebases:
+
+- **`/frontend`** — React SPA bootstrapped with Vite, styled with TailwindCSS, and connected via Socket.io-client.
+- **`/backend`** — Node.js/Express REST API with MongoDB/Mongoose, Socket.io, and Google Gemini AI integration.
 
 ```
 smart-placement-tracker/
-├── client/                 # Frontend React Application
+├── frontend/                    # React Frontend Application
 │   ├── src/
-│   │   ├── components/     # Reusable layout and UI blocks
-│   │   ├── context/        # Global Auth & Socket Context Providers
-│   │   └── pages/          # Student & Admin dashboards
+│   │   ├── components/
+│   │   │   ├── common/          # ProtectedRoute, shared UI elements
+│   │   │   ├── dashboard/       # JobCard, KanbanBoard, ProfileSidebar,
+│   │   │   │                    # JobFilters, InterviewHistory,
+│   │   │   │                    # EditProfileModal, MockInterviewModal
+│   │   │   └── layout/          # Navbar
+│   │   ├── context/             # AuthContext (global auth + socket state)
+│   │   ├── hooks/               # useAuth, useSocket custom hooks
+│   │   ├── pages/               # StudentDashboard, AdminDashboard,
+│   │   │                        # Login, Register, JobFeed
+│   │   └── services/            # Centralized API service layer
+│   ├── package.json
+│   └── vite.config.js
+│
+├── backend/                     # Node.js/Express Backend Application
+│   ├── config/                  # Database connection setup
+│   ├── controllers/             # Business logic handlers
+│   │   ├── auth.controller.js
+│   │   ├── job.controller.js
+│   │   ├── student.controller.js
+│   │   ├── mockInterview.controller.js
+│   │   └── anomaly.controller.js
+│   ├── middleware/              # Auth, security, and error pipelines
+│   ├── models/                  # Mongoose schemas (User, Job, Application, etc.)
+│   ├── routes/                  # Express route definitions
+│   ├── services/                # Gemini AI and Socket.io service handlers
+│   ├── tests/                   # Jest unit and integration tests
+│   ├── server.js                # Application entry point
+│   ├── seed.js                  # Database seeding script
 │   └── package.json
 │
-├── server/                 # Backend Node.js/Express Application
-│   ├── config/             # Database connection setup
-│   ├── controllers/        # Business logic for auth, applications, etc.
-│   ├── middleware/         # Security and authentication pipelines
-│   ├── models/             # Mongoose Schemas (User, Job, Anomaly, etc.)
-│   ├── services/           # Gemini AI and Socket.io handlers
-│   └── package.json
-│
-└── docker-compose.yml      # Orchestration config for containerized runs
+├── docker-compose.yml           # Container orchestration config
+├── render.yaml                  # Render deployment blueprint
+└── README.md
 ```
 
 ---
 
-## Configuration and Environment Setup
+## 🔄 Core System Workflows
+
+### 1. Student Onboarding & Profile Management
+- Students register with academic email, password, branch, CGPA, and contact info.
+- Upload PDF/TXT resumes directly — parsed automatically and stored in the profile.
+- Invoke the AI Resume Optimizer to compare resumes against target job postings.
+
+### 2. Job Creation & Real-Time Broadcast
+- Admins create job openings with company details, package, deadline, eligible branches, and CGPA cutoff.
+- New jobs are instantly broadcast to all connected students via WebSocket notifications.
+
+### 3. Application Submission & Security Validation
+- Frontend verifies CGPA eligibility before submission; applied jobs are tracked on the Kanban board.
+- Backend interceptor catches bypass attempts (e.g., direct API requests below cutoff), logs anomalies, and sends real-time alerts to the Admin dashboard.
+
+### 4. AI Mock Interview Simulation
+- Students launch the AI Mock Coach for applied positions.
+- Gemini AI generates MCQ-based interview questions tailored to the job description and student resume.
+- Answers are evaluated with scoring and structured feedback, saved as practice session history.
+
+### 5. Admin Security & Ban Enforcement
+- Security Command Center displays rate-limit spikes and eligibility bypass anomalies.
+- Admins can instantly suspend or ban violating accounts — disconnecting active sockets and invalidating JWT tokens.
+
+---
+
+## ⚙️ Configuration & Setup
 
 ### Prerequisites
-- Node.js (v18+)
-- MongoDB (Running locally or a remote MongoDB Atlas URI)
-- Gemini API Key (Optional; system falls back to a simulated mock mode if missing)
+- **Node.js** v18+
+- **MongoDB** (local instance or MongoDB Atlas URI)
+- **Gemini API Key** (optional — falls back to simulated mock mode if not provided)
 
-### Quick Setup
+### Quick Start
 
 1. **Clone the Repository:**
    ```bash
@@ -86,62 +108,89 @@ smart-placement-tracker/
    ```
 
 2. **Backend Setup:**
-   Configure environment variables in the `/server` directory before starting. Refer to `/server/README.md` for parameter definitions.
+   Configure environment variables in `/backend/.env` before starting. See `/backend/README.md` for details.
    ```bash
-   cd server
+   cd backend
    npm install
-   # Run seed script to populate test database
-   npm run seed
-   # Start development server
-   npm run dev
+   npm run seed       # Populate test database
+   npm run dev        # Start development server
    ```
 
 3. **Frontend Setup:**
    ```bash
-   cd ../client
+   cd ../frontend
    npm install
-   # Start Vite development server
-   npm run dev
+   npm run dev        # Start Vite dev server
    ```
 
-4. **Access the Portals:**
-   - Client Portal: `http://localhost:5173/`
+4. **Access the Application:**
+   - Frontend Portal: `http://localhost:5173/`
    - Backend API: `http://localhost:5000/`
 
 ---
 
-## Docker Deployment Guide
+## 🐳 Docker Deployment
 
-The root directory contains a `docker-compose.yml` file to run both services in containerized environments.
+The root `docker-compose.yml` orchestrates both services in containers:
 
-### Docker Compose Commands
+```bash
+# Build and run
+docker-compose up --build
 
-1. **Build and Run Containers:**
-   ```bash
-   docker-compose up --build
-   ```
-   This command pulls base images, builds both frontend and backend Dockerfiles, configures internal networking links, and runs the application.
+# Stop containers
+docker-compose down
 
-2. **Stop Containers:**
-   ```bash
-   docker-compose down
-   ```
-
-3. **View Container Logs:**
-   ```bash
-   docker-compose logs -f
-   ```
+# View logs
+docker-compose logs -f
+```
 
 ---
 
-## Test Credentials (Seed Data)
+## 🌐 Cloud Deployment
 
-You can use the following pre-seeded credentials for immediate demonstration:
+| Service | Platform | Config |
+|---|---|---|
+| Backend API | [Render](https://render.com) | `render.yaml` — auto-deploys from `backend/` |
+| Frontend SPA | [Vercel](https://vercel.com) | `frontend/vercel.json` — SPA rewrite rules |
 
-- **Admin Account:**
-  - **Email:** `admin@anurag.edu.in`
-  - **Password:** `adminpassword123`
-  
-- **Student Account:**
-  - **Email:** `student@anurag.edu.in`
-  - **Password:** `studentpassword123`
+### Environment Variables (Backend)
+
+| Variable | Description |
+|---|---|
+| `MONGO_URI` | MongoDB Atlas connection string |
+| `JWT_SECRET` | JWT signing secret |
+| `CLIENT_URL` | Frontend origin URL (for CORS) |
+| `GEMINI_API_KEY` | Google Gemini API key (optional) |
+| `PORT` | Server port (default: 5000) |
+
+---
+
+## 🧪 Testing
+
+```bash
+cd backend
+npm test
+```
+
+Runs Jest test suites covering authentication flows and Gemini AI service integration.
+
+---
+
+## 🔑 Test Credentials (Seed Data)
+
+| Role | Email | Password |
+|---|---|---|
+| **Admin** | `admin@anurag.edu.in` | `adminpassword123` |
+| **Student** | `student@anurag.edu.in` | `studentpassword123` |
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 18, Vite, TailwindCSS, Socket.io-client, Lucide Icons |
+| **Backend** | Node.js, Express, Mongoose, Socket.io, Helmet, JWT |
+| **AI Engine** | Google Gemini API (with fallback mock mode) |
+| **Database** | MongoDB Atlas |
+| **Deployment** | Render (backend), Vercel (frontend), Docker |

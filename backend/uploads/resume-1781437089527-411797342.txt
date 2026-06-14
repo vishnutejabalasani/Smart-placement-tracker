@@ -1,0 +1,9 @@
+BALASANI VISHNUTEJA
+Skills: MERN stack, React, Node.js, Express, MongoDB, Java, SQL, Context API
+Experience:
+Full Stack Web Developer Intern
+- Developed responsive web applications using React, Context API and Node.js.
+- Integrated REST APIs and designed database schemas with Mongoose.
+Education:
+Bachelor of Technology in Computer Science
+CGPA: 8.5

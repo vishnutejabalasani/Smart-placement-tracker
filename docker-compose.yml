@@ -4,7 +4,7 @@ services:
   # 1. Node.js Express API Backend Gateway
   backend:
     build:
-      context: ./server
+      context: ./backend
       dockerfile: Dockerfile
     container_name: placement_tracker_backend
     ports:
@@ -22,7 +22,7 @@ services:
   # 2. Compile-built React Frontend Static Nginx Container
   frontend:
     build:
-      context: ./client
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: placement_tracker_frontend
     ports:
