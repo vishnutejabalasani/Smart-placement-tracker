@@ -4,7 +4,7 @@
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 | Feature | Description |
 |---|---|
@@ -17,7 +17,7 @@
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 The application follows a **monorepo** structure with cleanly separated frontend and backend codebases:
 
@@ -66,7 +66,7 @@ smart-placement-tracker/
 
 ---
 
-## 🔄 Core System Workflows
+## Core System Workflows
 
 ### 1. Student Onboarding & Profile Management
 - Students register with academic email, password, branch, CGPA, and contact info.
@@ -92,7 +92,7 @@ smart-placement-tracker/
 
 ---
 
-## ⚙️ Configuration & Setup
+## Configuration & Setup
 
 ### Prerequisites
 - **Node.js** v18+
@@ -129,7 +129,7 @@ smart-placement-tracker/
 
 ---
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 The root `docker-compose.yml` orchestrates both services in containers:
 
@@ -146,7 +146,7 @@ docker-compose logs -f
 
 ---
 
-## 🌐 Cloud Deployment
+## Cloud Deployment
 
 | Service | Platform | Config |
 |---|---|---|
@@ -165,7 +165,7 @@ docker-compose logs -f
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 cd backend
@@ -176,7 +176,7 @@ Runs Jest test suites covering authentication flows and Gemini AI service integr
 
 ---
 
-## 🔑 Test Credentials (Seed Data)
+## Test Credentials (Seed Data)
 
 | Role | Email | Password |
 |---|---|---|
@@ -185,7 +185,7 @@ Runs Jest test suites covering authentication flows and Gemini AI service integr
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technologies |
 |---|---|
