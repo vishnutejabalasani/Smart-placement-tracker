@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const pdfParse = require('pdf-parse');
 
 // Helper to generate JWT tokens
 const generateToken = (id, role, email) => {
@@ -238,10 +240,49 @@ const getProfileOptimization = async (req, res, next) => {
   }
 };
 
+/**
+ * Public/Private Resume Upload & Parser
+ */
+const uploadResume = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    let resumeText = '';
+
+    if (req.file.mimetype === 'application/pdf') {
+      const dataBuffer = fs.readFileSync(req.file.path);
+      const parser = new pdfParse.PDFParse({ data: dataBuffer });
+      const parsedData = await parser.getText();
+      await parser.destroy();
+      resumeText = parsedData.text;
+    } else if (req.file.mimetype === 'text/plain') {
+      resumeText = fs.readFileSync(req.file.path, 'utf8');
+    }
+
+    const resumeUrl = `/uploads/${req.file.filename}`;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Resume uploaded and parsed successfully',
+      resumeUrl,
+      resumeText: resumeText.trim(),
+      fileName: req.file.originalname
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
   updateProfile,
-  getProfileOptimization
+  getProfileOptimization,
+  uploadResume
 };

@@ -18,9 +18,44 @@ const Register = () => {
   const [branch, setBranch] = useState('CSE');
   const [skills, setSkills] = useState('');
   const [resumeText, setResumeText] = useState('');
+  const [resumeFile, setResumeFile] = useState(null);
+  const [resumeUrl, setResumeUrl] = useState('');
+  const [uploadStatus, setUploadStatus] = useState(''); // '', 'uploading', 'success', 'error'
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setResumeFile(file);
+    setUploadStatus('uploading');
+    
+    const formData = new FormData();
+    formData.append('resume', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/profile/upload-resume`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (data.success) {
+        setUploadStatus('success');
+        setResumeUrl(data.resumeUrl);
+        setResumeText(data.resumeText);
+      } else {
+        setUploadStatus('error');
+        alert(data.message || 'Failed to upload resume');
+      }
+    } catch (err) {
+      console.error('File upload error:', err);
+      setUploadStatus('error');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,6 +77,7 @@ const Register = () => {
       branch,
       skills: skillsArray,
       resumeText: resumeText || `Candidate is skilled in: ${skills}. Completed coursework in ${branch}. CGPA is ${cgpa}.`,
+      resumeUrl,
       phone
     } : {};
 
@@ -223,15 +259,44 @@ const Register = () => {
                 <span className="text-[9px] text-slate-400 block">Comma separated list. These will be sent to Gemini for resume keyword matching!</span>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Resume Content (Plain Text)</label>
-                <textarea 
-                  value={resumeText}
-                  onChange={(e) => setResumeText(e.target.value)}
-                  rows="3"
-                  placeholder="Paste your resume contents or work experience here. Gemini AI will match this text against job criteria to calculate your profile match percentage."
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-purple-500 text-slate-800 text-xs focus:ring-1 focus:ring-purple-500 transition-all outline-none font-medium resize-none text-[11px]"
-                />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block flex items-center justify-between">
+                  <span>Resume File (PDF / TXT)</span>
+                  {uploadStatus === 'uploading' && <span className="text-[9px] text-purple-600 font-bold animate-pulse">Uploading & parsing...</span>}
+                  {uploadStatus === 'success' && <span className="text-[9px] text-emerald-650 font-extrabold">✓ Uploaded & parsed</span>}
+                  {uploadStatus === 'error' && <span className="text-[9px] text-red-500 font-bold">⚠️ Upload failed</span>}
+                </label>
+                
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <input 
+                      type="file"
+                      accept=".pdf,.txt"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs font-semibold flex items-center gap-2 hover:bg-slate-100/50 hover:border-purple-200 transition-all">
+                      <span>📁</span>
+                      <span className="truncate text-slate-700">
+                        {resumeFile ? resumeFile.name : "Select PDF or TXT resume file..."}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {resumeText && (
+                  <div className="mt-2">
+                    <details className="group border border-slate-100 rounded-xl bg-slate-50/50 overflow-hidden">
+                      <summary className="text-[9px] font-bold text-slate-500 uppercase tracking-wider p-2 cursor-pointer hover:bg-slate-50 transition-all flex items-center justify-between select-none">
+                        <span>View Parsed Resume Text</span>
+                        <span className="text-[8px] transition-transform group-open:rotate-180">▼</span>
+                      </summary>
+                      <div className="p-3 border-t border-slate-100 bg-white max-h-32 overflow-y-auto">
+                        <p className="text-[10px] text-slate-600 font-mono leading-relaxed whitespace-pre-wrap">{resumeText}</p>
+                      </div>
+                    </details>
+                  </div>
+                )}
               </div>
             </div>
           )}

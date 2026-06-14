@@ -18,3 +18,7 @@ dist/
 .vscode/
 .idea/
 Thumbs.db
+
+# Uploaded files
+server/uploads/*
+!server/uploads/.gitkeep

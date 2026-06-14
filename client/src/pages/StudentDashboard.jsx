@@ -26,6 +26,9 @@ const StudentDashboard = () => {
   const [editBranch, setEditBranch] = useState('');
   const [editSkills, setEditSkills] = useState('');
   const [editResumeText, setEditResumeText] = useState('');
+  const [editResumeFile, setEditResumeFile] = useState(null);
+  const [editResumeUrl, setEditResumeUrl] = useState('');
+  const [editUploadStatus, setEditUploadStatus] = useState(''); // '', 'uploading', 'success', 'error'
   const [editPhone, setEditPhone] = useState('');
   const [updateMessage, setUpdateMessage] = useState('');
 
@@ -54,9 +57,40 @@ const StudentDashboard = () => {
       setEditBranch(user.profile?.branch || 'CSE');
       setEditSkills(user.profile?.skills?.join(', ') || '');
       setEditResumeText(user.profile?.resumeText || '');
+      setEditResumeUrl(user.profile?.resumeUrl || '');
       setEditPhone(user.profile?.phone || '');
     }
   }, [user]);
+
+  const handleEditFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setEditResumeFile(file);
+    setEditUploadStatus('uploading');
+    
+    const formData = new FormData();
+    formData.append('resume', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/profile/upload-resume`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (data.success) {
+        setEditUploadStatus('success');
+        setEditResumeUrl(data.resumeUrl);
+        setEditResumeText(data.resumeText);
+      } else {
+        setEditUploadStatus('error');
+        alert(data.message || 'Failed to upload resume');
+      }
+    } catch (err) {
+      console.error('File upload error:', err);
+      setEditUploadStatus('error');
+    }
+  };
 
   const fetchData = async () => {
     if (!token) return;
@@ -157,6 +191,7 @@ const StudentDashboard = () => {
       branch: editBranch,
       skills: skillsArray,
       resumeText: editResumeText,
+      resumeUrl: editResumeUrl,
       phone: editPhone
     });
 
@@ -367,6 +402,25 @@ const StudentDashboard = () => {
                   </div>
                 </div>
               </div>
+
+              {user?.profile?.resumeUrl && (
+                <div className="flex items-center gap-3 border-t border-slate-100 pt-3 mt-1">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-650">
+                    <span className="text-lg">📄</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wide">Resume File</span>
+                    <a 
+                      href={user.profile.resumeUrl.startsWith('http') ? user.profile.resumeUrl : `${API_URL}${user.profile.resumeUrl}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-xs font-extrabold text-purple-600 hover:text-purple-705 underline transition-all flex items-center gap-1"
+                    >
+                      View Uploaded Resume
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -624,14 +678,44 @@ const StudentDashboard = () => {
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Resume Plain Text Contents</label>
-                <textarea 
-                  value={editResumeText}
-                  onChange={(e) => setEditResumeText(e.target.value)}
-                  rows="6"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-purple-500 text-slate-800 text-xs focus:ring-1 focus:ring-purple-500 transition-all outline-none font-medium resize-none text-[11px]"
-                />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block flex items-center justify-between">
+                  <span>Resume File (PDF / TXT)</span>
+                  {editUploadStatus === 'uploading' && <span className="text-[9px] text-purple-600 font-bold animate-pulse">Uploading & parsing...</span>}
+                  {editUploadStatus === 'success' && <span className="text-[9px] text-emerald-650 font-extrabold">✓ Uploaded & parsed</span>}
+                  {editUploadStatus === 'error' && <span className="text-[9px] text-red-500 font-bold">⚠️ Upload failed</span>}
+                </label>
+                
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <input 
+                      type="file"
+                      accept=".pdf,.txt"
+                      onChange={handleEditFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs font-semibold flex items-center gap-2 hover:bg-slate-100/50 hover:border-purple-200 transition-all">
+                      <span>📁</span>
+                      <span className="truncate text-slate-700">
+                        {editResumeFile ? editResumeFile.name : editResumeUrl ? "Change uploaded resume file..." : "Select PDF or TXT resume file..."}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {editResumeText && (
+                  <div className="mt-2">
+                    <details className="group border border-slate-100 rounded-xl bg-slate-50/50 overflow-hidden">
+                      <summary className="text-[9px] font-bold text-slate-500 uppercase tracking-wider p-2 cursor-pointer hover:bg-slate-50 transition-all flex items-center justify-between select-none">
+                        <span>View Parsed Resume Text</span>
+                        <span className="text-[8px] transition-transform group-open:rotate-180">▼</span>
+                      </summary>
+                      <div className="p-3 border-t border-slate-100 bg-white max-h-32 overflow-y-auto">
+                        <p className="text-[10px] text-slate-600 font-mono leading-relaxed whitespace-pre-wrap">{editResumeText}</p>
+                      </div>
+                    </details>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-2">
