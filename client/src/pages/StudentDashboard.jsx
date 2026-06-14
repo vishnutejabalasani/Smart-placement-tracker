@@ -411,7 +411,7 @@ const StudentDashboard = () => {
                   <div>
                     <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wide">Resume File</span>
                     <a 
-                      href={user.profile.resumeUrl.startsWith('http') ? user.profile.resumeUrl : `${API_URL}${user.profile.resumeUrl}`} 
+                      href={`${API_URL}/api/auth/profile/resume/${user._id}`} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="text-xs font-extrabold text-purple-600 hover:text-purple-705 underline transition-all flex items-center gap-1"

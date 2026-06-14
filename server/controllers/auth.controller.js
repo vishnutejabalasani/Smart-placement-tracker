@@ -241,7 +241,7 @@ const getProfileOptimization = async (req, res, next) => {
 };
 
 /**
- * Public/Private Resume Upload & Parser
+ * Public/Private Resume Upload & Parser (uses memory buffer for cloud compatibility)
  */
 const uploadResume = async (req, res, next) => {
   try {
@@ -255,16 +255,17 @@ const uploadResume = async (req, res, next) => {
     let resumeText = '';
 
     if (req.file.mimetype === 'application/pdf') {
-      const dataBuffer = fs.readFileSync(req.file.path);
-      const parser = new pdfParse.PDFParse({ data: dataBuffer });
+      const parser = new pdfParse.PDFParse({ data: req.file.buffer });
       const parsedData = await parser.getText();
       await parser.destroy();
       resumeText = parsedData.text;
     } else if (req.file.mimetype === 'text/plain') {
-      resumeText = fs.readFileSync(req.file.path, 'utf8');
+      resumeText = req.file.buffer.toString('utf8');
     }
 
-    const resumeUrl = `/uploads/${req.file.filename}`;
+    // Convert buffer to base64 Data URL
+    const base64Data = req.file.buffer.toString('base64');
+    const resumeUrl = `data:${req.file.mimetype};base64,${base64Data}`;
 
     return res.status(200).json({
       success: true,
@@ -278,11 +279,42 @@ const uploadResume = async (req, res, next) => {
   }
 };
 
+/**
+ * Dynamically serve/download resume from database
+ */
+const getResumeFile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user || !user.profile?.resumeUrl) {
+      return res.status(404).send('Resume file not found');
+    }
+
+    const resumeUrl = user.profile.resumeUrl;
+    if (resumeUrl.startsWith('data:')) {
+      const matches = resumeUrl.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.*)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).send('Invalid resume data format');
+      }
+      const contentType = matches[1];
+      const buffer = Buffer.from(matches[2], 'base64');
+      res.set('Content-Type', contentType);
+      res.set('Content-Disposition', `inline; filename="resume_${req.params.userId}.${contentType.split('/')[1] === 'pdf' ? 'pdf' : 'txt'}"`);
+      return res.send(buffer);
+    } else {
+      // Seeded URL
+      return res.redirect(resumeUrl);
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
   updateProfile,
   getProfileOptimization,
-  uploadResume
+  uploadResume,
+  getResumeFile
 };
