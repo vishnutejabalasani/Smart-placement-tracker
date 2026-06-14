@@ -819,28 +819,80 @@ const StudentDashboard = () => {
                   ></div>
                 </div>
 
-                {/* Question panel */}
-                <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 min-h-[90px] flex items-center">
-                  <p className="text-xs text-slate-800 font-bold leading-relaxed">
-                    {activeInterview.questions[currentQuestionIdx]}
-                  </p>
-                </div>
+                {/* Question panel & Answer options */}
+                {(() => {
+                  const currentQuestionRaw = activeInterview.questions[currentQuestionIdx];
+                  let currentQuestionObj = { question: currentQuestionRaw, options: [] };
+                  if (currentQuestionRaw) {
+                    try {
+                      currentQuestionObj = JSON.parse(currentQuestionRaw);
+                    } catch (e) {
+                      currentQuestionObj = { question: currentQuestionRaw, options: [] };
+                    }
+                  }
 
-                {/* Answer box */}
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Your Response</label>
-                  <textarea
-                    rows="6"
-                    value={interviewAnswers[currentQuestionIdx]}
-                    onChange={(e) => {
-                      const updated = [...interviewAnswers];
-                      updated[currentQuestionIdx] = e.target.value;
-                      setInterviewAnswers(updated);
-                    }}
-                    placeholder="Structure your answer clearly, including relevant coding syntax, system architectures, or examples where applicable..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-slate-800 text-xs transition-all outline-none font-medium resize-none leading-relaxed"
-                  />
-                </div>
+                  return (
+                    <>
+                      <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 min-h-[90px] flex items-center">
+                        <p className="text-xs text-slate-800 font-bold leading-relaxed">
+                          {currentQuestionObj.question}
+                        </p>
+                      </div>
+
+                      {/* Answer selection */}
+                      <div className="space-y-2">
+                        {currentQuestionObj.options && currentQuestionObj.options.length > 0 ? (
+                          <div className="grid grid-cols-1 gap-2.5">
+                            {currentQuestionObj.options.map((option, idx) => {
+                              const optionLetter = String.fromCharCode(65 + idx); // A, B, C, D
+                              const isSelected = interviewAnswers[currentQuestionIdx] === optionLetter;
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...interviewAnswers];
+                                    updated[currentQuestionIdx] = optionLetter;
+                                    setInterviewAnswers(updated);
+                                  }}
+                                  className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-center gap-3.5 ${
+                                    isSelected
+                                      ? 'bg-purple-50/70 border-purple-550 ring-2 ring-purple-500/10 text-purple-950 font-semibold'
+                                      : 'bg-white border-slate-200 hover:border-purple-300 text-slate-700 font-medium hover:bg-slate-50/30'
+                                  }`}
+                                >
+                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-extrabold text-[11px] shrink-0 transition-all ${
+                                    isSelected
+                                      ? 'bg-purple-600 text-white shadow-md'
+                                      : 'bg-slate-100 text-slate-550'
+                                  }`}>
+                                    {optionLetter}
+                                  </div>
+                                  <span className="text-[11px] leading-relaxed">{option}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Your Response</label>
+                            <textarea
+                              rows="6"
+                              value={interviewAnswers[currentQuestionIdx]}
+                              onChange={(e) => {
+                                const updated = [...interviewAnswers];
+                                updated[currentQuestionIdx] = e.target.value;
+                                setInterviewAnswers(updated);
+                              }}
+                              placeholder="Structure your answer clearly, including relevant coding syntax, system architectures, or examples where applicable..."
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-slate-800 text-xs transition-all outline-none font-medium resize-none leading-relaxed"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* Actions */}
                 <div className="flex justify-between items-center pt-2">

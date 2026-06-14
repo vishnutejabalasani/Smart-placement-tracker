@@ -156,21 +156,51 @@ const getMockMatch = (profile, jobDesc) => {
 };
 
 /**
- * Generates 3 interview questions based on student profile and job description.
+ * Generates 3 multiple choice questions based on student profile and job description.
  */
 const generateMockQuestions = async (studentProfileText, jobDescription) => {
+  const mockMcqQuestions = [
+    JSON.stringify({
+      question: "In a MERN stack application, what is the role of Express.js?",
+      options: [
+        "It acts as the document-oriented database for storing user data.",
+        "It is a web application framework for Node.js that simplifies API routing.",
+        "It is the frontend library used to build interactive user interfaces.",
+        "It is a runtime engine used to compile JavaScript to machine code."
+      ],
+      correctAnswer: "B"
+    }),
+    JSON.stringify({
+      question: "Which React hook is most appropriate for sharing state globally across components without prop drilling?",
+      options: [
+        "useState",
+        "useEffect",
+        "useContext",
+        "useRef"
+      ],
+      correctAnswer: "C"
+    }),
+    JSON.stringify({
+      question: "What is the purpose of percent-encoding special characters in a MongoDB connection string?",
+      options: [
+        "To encrypt the password so that it cannot be intercepted during network transit.",
+        "To prevent parsing errors caused by characters like '@' or '/' which have special meanings in URIs.",
+        "To reduce the length of the URI so that it fits within database driver limitations.",
+        "To automatically enable SSL/TLS validation on the connection."
+      ],
+      correctAnswer: "B"
+    })
+  ];
+
   if (!genAI) {
     console.log('Gemini API Key missing. Generating fallback mock questions...');
-    return [
-      "Explain how you would design a REST API with Express and MongoDB for this role.",
-      "How do you handle state management in React, and which Hook would you use to share state globally?",
-      "Tell me about a time you encountered a challenging bug in JavaScript. How did you diagnose and resolve it?"
-    ];
+    return mockMcqQuestions;
   }
 
   try {
     const prompt = `
-      You are an expert technical interviewer. Generate exactly 3 technical or behavioral interview questions for a student based on their resume profile and the job description.
+      You are an expert technical interviewer. Generate exactly 3 technical multiple choice questions (MCQs) for a student based on their resume profile and the job description.
+      Each question must have exactly 4 options and a single correct answer.
       
       STUDENT RESUME/PROFILE DETAILS:
       """
@@ -182,83 +212,126 @@ const generateMockQuestions = async (studentProfileText, jobDescription) => {
       ${jobDescription}
       """
       
-      Provide a highly relevant list of questions. Return a JSON object with the exact format:
+      Provide a highly relevant list of MCQ questions. Return a JSON object with the exact format:
       {
         "questions": [
-          "question 1 (specific to technical requirements or student skills)",
-          "question 2 (problem solving or architecture related)",
-          "question 3 (behavioral or project related)"
+          {
+            "question": "Question text here",
+            "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+            "correctAnswer": "A"
+          },
+          {
+            "question": "Question text here",
+            "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+            "correctAnswer": "B"
+          },
+          {
+            "question": "Question text here",
+            "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+            "correctAnswer": "C"
+          }
         ]
       }
     `;
 
     const text = await generateContentWithFallback(prompt, { responseMimeType: 'application/json' });
     const parsed = JSON.parse(text.trim());
-    return Array.isArray(parsed.questions) ? parsed.questions : [
-      "Tell us about your experience with modern frontend/backend technologies.",
-      "Explain how you would design a scalable database schema for this application.",
-      "How do you prioritize tasks under tight deadlines or ambiguous requirements?"
-    ];
+    if (parsed && Array.isArray(parsed.questions)) {
+      return parsed.questions.map(q => JSON.stringify(q));
+    }
+    return mockMcqQuestions;
   } catch (error) {
-    console.error('Error generating questions with Gemini:', error.message);
-    return [
-      "Explain how you would design a REST API with Express and MongoDB for this role.",
-      "How do you handle state management in React, and which Hook would you use to share state globally?",
-      "Tell me about a time you encountered a challenging bug in JavaScript. How did you diagnose and resolve it?"
-    ];
+    console.error('Error generating MCQ questions with Gemini:', error.message);
+    return mockMcqQuestions;
   }
 };
 
 /**
- * Evaluates the student's answers to the generated questions.
+ * Evaluates the student's answers to the generated MCQ questions.
  */
 const evaluateMockAnswers = async (questions, answers, jobDescription) => {
+  let QA_Pairs = '';
+  let correctCount = 0;
+  
+  const parsedQuestions = questions.map((qStr, i) => {
+    let q;
+    try {
+      q = JSON.parse(qStr);
+    } catch (err) {
+      q = { question: qStr, options: [], correctAnswer: '' };
+    }
+    const studentAns = (answers[i] || '').trim().toUpperCase();
+    const correctAns = (q.correctAnswer || '').trim().toUpperCase();
+    const isCorrect = correctAns && studentAns === correctAns;
+    if (isCorrect) {
+      correctCount++;
+    }
+    
+    QA_Pairs += `Question ${i+1}: ${q.question}\n`;
+    if (q.options && q.options.length > 0) {
+      q.options.forEach((opt, idx) => {
+        QA_Pairs += `  ${String.fromCharCode(65 + idx)}) ${opt}\n`;
+      });
+    }
+    QA_Pairs += `Student Selected Option: ${studentAns || 'None'}\n`;
+    QA_Pairs += `Correct Option: ${correctAns}\n`;
+    QA_Pairs += `Result: ${isCorrect ? 'Correct' : 'Incorrect'}\n\n`;
+    
+    return { ...q, studentAns, isCorrect };
+  });
+
+  const baseScore = Math.round((correctCount / questions.length) * 100);
+
   if (!genAI) {
     console.log('Gemini API Key missing. Evaluating fallback mock answers...');
+    let feedback = `You answered ${correctCount} out of ${questions.length} questions correctly.\n\n`;
+    parsedQuestions.forEach((q, i) => {
+      feedback += `• Q${i+1}: ${q.isCorrect ? 'Correct! ' : 'Incorrect. '} The correct answer was option ${q.correctAnswer}. ${q.isCorrect ? 'Well done!' : 'Review this concept to strengthen your understanding.'}\n`;
+    });
     return {
-      score: 75,
-      feedback: "Great effort! You showed good fundamental knowledge, but your answers could be more detailed. Focus on using specific technical keywords (e.g., REST API, state management) and structuring behavioral questions using the STAR method."
+      score: baseScore,
+      feedback
     };
   }
 
   try {
-    let QA_Pairs = '';
-    questions.forEach((q, i) => {
-      QA_Pairs += `Question ${i+1}: ${q}\nAnswer ${i+1}: ${answers[i] || 'No answer provided.'}\n\n`;
-    });
-
     const prompt = `
-      You are an expert technical recruiter. Evaluate the following interview answers submitted by a candidate applying for this job.
+      You are an expert technical recruiter. Evaluate the following multiple-choice interview results submitted by a candidate.
       
       JOB DESCRIPTION:
       """
       ${jobDescription}
       """
       
-      QUESTIONS AND CANDIDATE ANSWERS:
+      QUESTIONS AND CANDIDATE RESPONSES:
       """
       ${QA_Pairs}
       """
       
-      Analyze the technical accuracy, depth, and communication clarity of the answers. Provide a score out of 100, and a concise 3-4 sentence constructive feedback summary with bullet points of improvement areas.
+      Generate a professional 3-4 sentence feedback summary. Focus on explaining the concepts behind any questions the student answered incorrectly, and highlight the significance of the correct options relative to the job description. Do not change the score from the auto-calculated score of ${baseScore}%.
+      
       Return a JSON object with the exact format:
       {
-        "score": <number between 0 and 100>,
-        "feedback": "<Structured critique and improvement recommendations>"
+        "score": ${baseScore},
+        "feedback": "<Constructive critique and coaching feedback based on their results>"
       }
     `;
 
     const text = await generateContentWithFallback(prompt, { responseMimeType: 'application/json' });
     const evaluation = JSON.parse(text.trim());
     return {
-      score: Math.min(100, Math.max(0, parseInt(evaluation.score) || 60)),
-      feedback: evaluation.feedback || 'Evaluation complete. Keep practicing!'
+      score: baseScore,
+      feedback: evaluation.feedback || `You scored ${baseScore}%. Practice makes perfect!`
     };
   } catch (error) {
-    console.error('Error evaluating answers with Gemini:', error.message);
+    console.error('Error evaluating MCQ answers with Gemini:', error.message);
+    let feedback = `You answered ${correctCount} out of ${questions.length} questions correctly. (Score: ${baseScore}%)\n\n`;
+    parsedQuestions.forEach((q, i) => {
+      feedback += `• Q${i+1}: ${q.isCorrect ? 'Correct! ' : 'Incorrect. '} The correct answer was option ${q.correctAnswer}.\n`;
+    });
     return {
-      score: 70,
-      feedback: "Answer evaluation completed. Focus on explaining concrete coding examples and using industry-standard terminologies."
+      score: baseScore,
+      feedback
     };
   }
 };
