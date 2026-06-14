@@ -255,9 +255,7 @@ const uploadResume = async (req, res, next) => {
     let resumeText = '';
 
     if (req.file.mimetype === 'application/pdf') {
-      const parser = new pdfParse.PDFParse({ data: req.file.buffer });
-      const parsedData = await parser.getText();
-      await parser.destroy();
+      const parsedData = await pdfParse(req.file.buffer);
       resumeText = parsedData.text;
     } else if (req.file.mimetype === 'text/plain') {
       resumeText = req.file.buffer.toString('utf8');
