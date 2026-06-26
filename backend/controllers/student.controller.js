@@ -28,6 +28,14 @@ const applyToJob = async (req, res, next) => {
       });
     }
 
+    // Check if the application deadline has passed
+    if (job.deadline && new Date() > new Date(job.deadline)) {
+      return res.status(400).json({
+        success: false,
+        message: 'The application deadline for this job has passed.'
+      });
+    }
+
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({

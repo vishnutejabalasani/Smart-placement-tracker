@@ -124,6 +124,7 @@ const JobFeed = () => {
               const studentCgpa = user?.profile?.cgpa || 0.0;
               const meetsCgpa = studentCgpa >= job.cgpaCutoff;
               const hasApplied = applications.some(app => app.job?._id === job._id);
+              const isPastDeadline = job.deadline ? new Date() > new Date(job.deadline) : false;
 
               return (
                 <div 
@@ -149,7 +150,7 @@ const JobFeed = () => {
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md border ${
                         meetsCgpa 
-                          ? 'bg-emerald-50 border-emerald-105 text-emerald-705' 
+                          ? 'bg-emerald-50 border-emerald-105 text-emerald-755' 
                           : 'bg-red-50 border-red-105 text-red-650'
                       }`}>
                         Cutoff: {job.cgpaCutoff.toFixed(2)} CGPA
@@ -171,6 +172,13 @@ const JobFeed = () => {
                     {hasApplied ? (
                       <span className="text-[10px] font-black text-emerald-705 flex items-center gap-1">
                         <CheckCircle className="w-3.5 h-3.5 text-emerald-650" /> Applied
+                      </span>
+                    ) : isPastDeadline ? (
+                      <span 
+                        className="text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-lg flex items-center gap-1 shrink-0 cursor-not-allowed"
+                        title="The application deadline has passed."
+                      >
+                        ⏰ Deadline Passed
                       </span>
                     ) : meetsCgpa ? (
                       <button

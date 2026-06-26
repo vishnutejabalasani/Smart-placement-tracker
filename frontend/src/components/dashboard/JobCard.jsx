@@ -3,6 +3,7 @@ import { Sparkles, CheckCircle } from 'lucide-react';
 
 const JobCard = ({ job, userCgpa, hasApplied, onApply, actionLoading }) => {
   const meetsCgpa = userCgpa >= job.cgpaCutoff;
+  const isPastDeadline = job.deadline ? new Date() > new Date(job.deadline) : false;
 
   return (
     <div 
@@ -49,6 +50,13 @@ const JobCard = ({ job, userCgpa, hasApplied, onApply, actionLoading }) => {
         {hasApplied ? (
           <span className="text-[10px] font-black text-emerald-700 flex items-center gap-1">
             <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Applied
+          </span>
+        ) : isPastDeadline ? (
+          <span 
+            className="text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-lg flex items-center gap-1 shrink-0 cursor-not-allowed"
+            title="The application deadline has passed."
+          >
+            ⏰ Deadline Passed
           </span>
         ) : meetsCgpa ? (
           <button
